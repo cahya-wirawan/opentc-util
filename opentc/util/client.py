@@ -1,5 +1,6 @@
 import os
 import logging
+from opentc.util import SimpleSocket
 
 
 class Client(object):

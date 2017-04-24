@@ -4,7 +4,6 @@ import logging
 import socket
 import struct
 import yaml
-from . import SimpleSocket
 
 
 def setup_logging(
@@ -41,7 +40,7 @@ def setup_logging(
 def setup_config(
         config_directories=None,
         config_file=None,
-        default_filename=None
+        default_filename="opentc.yml"
 ):
     """Setup configuration
 
