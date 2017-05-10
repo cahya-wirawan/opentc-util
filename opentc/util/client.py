@@ -10,6 +10,7 @@ class Client(object):
         self.address = address
         self.port = port
         self.simple_socket = SimpleSocket(address=self.address, port=self.port)
+        self.mid = 0
 
     def command(self, message=None):
         logger = logging.getLogger(__name__)
@@ -17,6 +18,22 @@ class Client(object):
             self.simple_socket.send(message.encode('utf-8'))
             response = self.simple_socket.receive()
             logger.debug("command Received: {}".format(response))
+            return response
+        except ConnectionError as err:
+            logger.error("OS error: {0}".format(err))
+            raise
+
+    def ping(self):
+        logger = logging.getLogger(__name__)
+        self.mid += 1
+        message = "PING:{}".format(self.mid)
+        try:
+            logger.debug("Ping send mid: {}".format(self.mid))
+            self.simple_socket.send(message.encode('utf-8'))
+            response = None
+            while response == None:
+                response = self.simple_socket.receive()
+            logger.debug("Ping response: {}, mid sent: {}".format(response, self.mid))
             return response
         except ConnectionError as err:
             logger.error("OS error: {0}".format(err))
