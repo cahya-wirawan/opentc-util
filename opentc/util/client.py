@@ -1,5 +1,7 @@
 import os
+import time
 import logging
+import json
 from opentc.util import SimpleSocket
 
 
@@ -10,7 +12,6 @@ class Client(object):
         self.address = address
         self.port = port
         self.simple_socket = SimpleSocket(address=self.address, port=self.port)
-        self.mid = 0
 
     def command(self, message=None):
         logger = logging.getLogger(__name__)
@@ -25,15 +26,15 @@ class Client(object):
 
     def ping(self):
         logger = logging.getLogger(__name__)
-        self.mid += 1
-        message = "PING:{}".format(self.mid)
+        mid = str(time.time())
+        message = "PING:{}".format(mid)
         try:
-            logger.debug("Ping send mid: {}".format(self.mid))
+            logger.debug("Ping send mid: {}".format(mid))
             self.simple_socket.send(message.encode('utf-8'))
             response = None
-            while response == None:
+            while response is None:
                 response = self.simple_socket.receive()
-            logger.debug("Ping response: {}, mid sent: {}".format(response, self.mid))
+            logger.debug("Ping response: {}, mid sent: {}".format(response, mid))
             return response
         except ConnectionError as err:
             logger.error("OS error: {0}".format(err))
@@ -78,7 +79,8 @@ class Client(object):
 
     def predict_stream(self, data=None):
         logger = logging.getLogger(__name__)
-        command = "PREDICT_STREAM\n"
+        mid = str(time.time())
+        command = "PREDICT_STREAM:{}\n".format(mid)
         self.simple_socket.send(command.encode('utf-8'))
         try:
             data_len = len(data)
@@ -91,8 +93,12 @@ class Client(object):
                 end_pos += self.max_chunk_size
             self.simple_socket.send(b'')
             response = self.simple_socket.receive()
-            logger.debug("Client Received: {}".format(response))
-            return response
+            response_str = json.loads(response.decode('utf-8'))
+            logger.debug("Client Received: {}, mid sent: {}".format(response, mid))
+            if response_str["mid"] == mid:
+                return response
+            else:
+                return None
         except OSError as err:
             logger.error("OS error: {0}".format(err))
 
